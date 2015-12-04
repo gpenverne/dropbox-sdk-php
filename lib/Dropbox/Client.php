@@ -1,4 +1,5 @@
 <?php
+
 namespace Dropbox;
 
 /**
@@ -9,13 +10,17 @@ namespace Dropbox;
  */
 class Client
 {
+
     /**
      * The access token used by this client to make authenticated API calls.  You can get an
      * access token via {@link WebAuth}.
      *
      * @return AccessToken
      */
-    function getAccessToken() { return $this->accessToken; }
+    function getAccessToken()
+    {
+        return $this->accessToken;
+    }
 
     /** @var AccessToken */
     private $accessToken;
@@ -39,7 +44,10 @@ class Client
      *
      * @return string
      */
-    function getClientIdentifier() { return $this->clientIdentifier; }
+    function getClientIdentifier()
+    {
+        return $this->clientIdentifier;
+    }
 
     /** @var string */
     private $clientIdentifier;
@@ -51,7 +59,10 @@ class Client
      *
      * @return null|string
      */
-    function getUserLocale() { return $this->userLocale; }
+    function getUserLocale()
+    {
+        return $this->userLocale;
+    }
 
     /** @var null|string */
     private $userLocale;
@@ -61,7 +72,10 @@ class Client
      *
      * @return Host
      */
-    function getHost() { return $this->host; }
+    function getHost()
+    {
+        return $this->host;
+    }
 
     /**
      * Constructor.
@@ -87,11 +101,13 @@ class Client
         // we don't want it to be included in the documentation.  Use PHP arg list hacks to get at
         // it.
         $host = null;
-        if (\func_num_args() == 4) {
+        if (\func_num_args() == 4)
+        {
             $host = \func_get_arg(3);
             Host::checkArgOrNull("host", $host);
         }
-        if ($host === null) {
+        if ($host === null)
+        {
             $host = Host::getDefault();
         }
         $this->host = $host;
@@ -104,6 +120,7 @@ class Client
 
     /** @var string */
     private $apiHost;
+
     /** @var string */
     private $contentHost;
 
@@ -135,7 +152,8 @@ class Client
     function disableAccessToken()
     {
         $response = $this->doPost($this->apiHost, "1/disable_access_token");
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
     }
 
     /**
@@ -155,7 +173,8 @@ class Client
     function getAccountInfo()
     {
         $response = $this->doGet($this->apiHost, "1/account/info");
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
         return RequestUtil::parseResponseJson($response->body);
     }
 
@@ -195,9 +214,7 @@ class Client
         Checker::argStringNonEmptyOrNull("rev", $rev);
 
         $url = $this->buildUrlForGetOrPut(
-            $this->contentHost,
-            $this->appendFilePath("1/files", $path),
-            array("rev" => $rev));
+                $this->contentHost, $this->appendFilePath("1/files", $path), array("rev" => $rev));
 
         $curl = $this->mkCurl($url);
         $metadataCatcher = new DropboxMetadataHeaderCatcher($curl->handle);
@@ -205,9 +222,11 @@ class Client
 
         $response = $curl->exec();
 
-        if ($response->statusCode === 404) return null;
+        if ($response->statusCode === 404)
+            return null;
 
-        if ($response->statusCode !== 200) {
+        if ($response->statusCode !== 200)
+        {
             $response->body = $streamRelay->getErrorBody();
             throw RequestUtil::unexpectedStatus($response);
         }
@@ -271,6 +290,7 @@ class Client
      *
      * @throws Exception
      */
+
     function uploadFile($path, $writeMode, $inStream, $numBytes = null)
     {
         Path::checkArgNonRoot("path", $path);
@@ -281,16 +301,17 @@ class Client
         // If we don't know how many bytes are coming, we have to use chunked upload.
         // If $numBytes is large, we elect to use chunked upload.
         // In all other cases, use regular upload.
-        if ($numBytes === null || $numBytes > self::$AUTO_CHUNKED_UPLOAD_THRESHOLD) {
-            $metadata = $this->_uploadFileChunked($path, $writeMode, $inStream, $numBytes,
-                                                  self::$DEFAULT_CHUNK_SIZE);
-        } else {
-            $metadata = $this->_uploadFile($path, $writeMode,
-                function(Curl $curl) use ($inStream, $numBytes) {
-                    $curl->set(CURLOPT_PUT, true);
-                    $curl->set(CURLOPT_INFILE, $inStream);
-                    $curl->set(CURLOPT_INFILESIZE, $numBytes);
-                });
+        if ($numBytes === null || $numBytes > self::$AUTO_CHUNKED_UPLOAD_THRESHOLD)
+        {
+            $metadata = $this->_uploadFileChunked($path, $writeMode, $inStream, $numBytes, self::$DEFAULT_CHUNK_SIZE);
+        }
+        else
+        {
+            $metadata = $this->_uploadFile($path, $writeMode, function(Curl $curl) use ($inStream, $numBytes) {
+                $curl->set(CURLOPT_PUT, true);
+                $curl->set(CURLOPT_INFILE, $inStream);
+                $curl->set(CURLOPT_INFILESIZE, $numBytes);
+            });
         }
 
         return $metadata;
@@ -330,10 +351,10 @@ class Client
         Checker::argString("data", $data);
 
         return $this->_uploadFile($path, $writeMode, function(Curl $curl) use ($data) {
-            $curl->set(CURLOPT_CUSTOMREQUEST, "PUT");
-            $curl->set(CURLOPT_POSTFIELDS, $data);
-            $curl->addHeader("Content-Type: application/octet-stream");
-        });
+                    $curl->set(CURLOPT_CUSTOMREQUEST, "PUT");
+                    $curl->set(CURLOPT_POSTFIELDS, $data);
+                    $curl->addHeader("Content-Type: application/octet-stream");
+                });
     }
 
     /**
@@ -368,7 +389,8 @@ class Client
      */
     function uploadFileChunked($path, $writeMode, $inStream, $numBytes = null, $chunkSize = null)
     {
-        if ($chunkSize === null) {
+        if ($chunkSize === null)
+        {
             $chunkSize = self::$DEFAULT_CHUNK_SIZE;
         }
 
@@ -420,26 +442,29 @@ class Client
 
         $client = $this;
         $uploadId = RequestUtil::runWithRetry(3, function() use ($data, $client) {
-            return $client->chunkedUploadStart($data);
-        });
+                    return $client->chunkedUploadStart($data);
+                });
 
         $byteOffset = $len;
 
-        while (!feof($inStream)) {
+        while (!feof($inStream))
+        {
             $data = self::readFully($inStream, $chunkSize);
             $len = strlen($data);
 
-            while (true) {
-                $r = RequestUtil::runWithRetry(3,
-                    function() use ($client, $uploadId, $byteOffset, $data) {
-                        return $client->chunkedUploadContinue($uploadId, $byteOffset, $data);
-                    });
+            while (true)
+            {
+                $r = RequestUtil::runWithRetry(3, function() use ($client, $uploadId, $byteOffset, $data) {
+                            return $client->chunkedUploadContinue($uploadId, $byteOffset, $data);
+                        });
 
-                if ($r === true) {  // Chunk got uploaded!
+                if ($r === true)
+                {  // Chunk got uploaded!
                     $byteOffset += $len;
                     break;
                 }
-                if ($r === false) {  // Server didn't recognize our upload ID
+                if ($r === false)
+                {  // Server didn't recognize our upload ID
                     // This is very unlikely since we're uploading all the chunks in sequence.
                     throw new Exception_BadResponse("Server forgot our uploadId");
                 }
@@ -448,27 +473,30 @@ class Client
                 $serverByteOffset = $r;
                 assert($serverByteOffset !== $byteOffset);  // chunkedUploadContinue ensures this.
                 // An earlier byte offset means the server has lost data we sent earlier.
-                if ($serverByteOffset < $byteOffset) throw new Exception_BadResponse(
+                if ($serverByteOffset < $byteOffset)
+                    throw new Exception_BadResponse(
                     "Server is at an ealier byte offset: us=$byteOffset, server=$serverByteOffset");
                 $diff = $serverByteOffset - $byteOffset;
                 // If the server is past where we think it could possibly be, something went wrong.
-                if ($diff > $len) throw new Exception_BadResponse(
+                if ($diff > $len)
+                    throw new Exception_BadResponse(
                     "Server is more than a chunk ahead: us=$byteOffset, server=$serverByteOffset");
                 // The normal case is that the server is a bit further along than us because of a
                 // partially-uploaded chunk.  Finish it off.
                 $byteOffset += $diff;
-                if ($diff === $len) break;  // If the server is at the end, we're done.
+                if ($diff === $len)
+                    break;  // If the server is at the end, we're done.
                 $data = substr($data, $diff);
             }
         }
 
-        if ($numBytes !== null && $byteOffset !== $numBytes) throw new \InvalidArgumentException(
+        if ($numBytes !== null && $byteOffset !== $numBytes)
+            throw new \InvalidArgumentException(
             "You passed numBytes=$numBytes but the stream had $byteOffset bytes.");
 
-        $metadata = RequestUtil::runWithRetry(3,
-            function() use ($client, $uploadId, $path, $writeMode) {
-                return $client->chunkedUploadFinish($uploadId, $path, $writeMode);
-            });
+        $metadata = RequestUtil::runWithRetry(3, function() use ($client, $uploadId, $path, $writeMode) {
+                    return $client->chunkedUploadFinish($uploadId, $path, $writeMode);
+                });
 
         return $metadata;
     }
@@ -489,9 +517,11 @@ class Client
 
         $full = '';
         $bytesRemaining = $numBytes;
-        while (!feof($inStream) && $bytesRemaining > 0) {
+        while (!feof($inStream) && $bytesRemaining > 0)
+        {
             $part = fread($inStream, $bytesRemaining);
-            if ($part === false) throw new StreamReadException("Error reading from \$inStream.");
+            if ($part === false)
+                throw new StreamReadException("Error reading from \$inStream.");
             $full .= $part;
             $bytesRemaining -= strlen($part);
         }
@@ -511,9 +541,7 @@ class Client
         Checker::argCallable("curlConfigClosure", $curlConfigClosure);
 
         $url = $this->buildUrlForGetOrPut(
-            $this->contentHost,
-            $this->appendFilePath("1/files_put", $path),
-            $writeMode->getExtraParams());
+                $this->contentHost, $this->appendFilePath("1/files_put", $path), $writeMode->getExtraParams());
 
         $curl = $this->mkCurl($url);
 
@@ -522,7 +550,8 @@ class Client
         $curl->set(CURLOPT_RETURNTRANSFER, true);
         $response = $curl->exec();
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -547,19 +576,23 @@ class Client
 
         $response = $this->_chunkedUpload(array(), $data);
 
-        if ($response->statusCode === 404) {
+        if ($response->statusCode === 404)
+        {
             throw new Exception_BadResponse("Got a 404, but we didn't send up an 'upload_id'");
         }
 
         $correction = self::_chunkedUploadCheckForOffsetCorrection($response);
-        if ($correction !== null) throw new Exception_BadResponse(
+        if ($correction !== null)
+            throw new Exception_BadResponse(
             "Got an offset-correcting 400 response, but we didn't send an offset");
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         list($uploadId, $byteOffset) = self::_chunkedUploadParse200Response($response->body);
         $len = strlen($data);
-        if ($byteOffset !== $len) throw new Exception_BadResponse(
+        if ($byteOffset !== $len)
+            throw new Exception_BadResponse(
             "We sent $len bytes, but server returned an offset of $byteOffset");
 
         return $uploadId;
@@ -597,32 +630,39 @@ class Client
         Checker::argString("data", $data);
 
         $response = $this->_chunkedUpload(
-            array("upload_id" => $uploadId, "offset" => $byteOffset), $data);
+                array("upload_id" => $uploadId, "offset" => $byteOffset), $data);
 
-        if ($response->statusCode === 404) {
+        if ($response->statusCode === 404)
+        {
             // The server doesn't know our upload ID.  Maybe it expired?
             return false;
         }
 
         $correction = self::_chunkedUploadCheckForOffsetCorrection($response);
-        if ($correction !== null) {
+        if ($correction !== null)
+        {
             list($correctedUploadId, $correctedByteOffset) = $correction;
-            if ($correctedUploadId !== $uploadId) throw new Exception_BadResponse(
-                "Corrective 400 upload_id mismatch: us=".
-                Util::q($uploadId)." server=".Util::q($correctedUploadId));
-            if ($correctedByteOffset === $byteOffset) throw new Exception_BadResponse(
+            if ($correctedUploadId !== $uploadId)
+                throw new Exception_BadResponse(
+                "Corrective 400 upload_id mismatch: us=" .
+                Util::q($uploadId) . " server=" . Util::q($correctedUploadId));
+            if ($correctedByteOffset === $byteOffset)
+                throw new Exception_BadResponse(
                 "Corrective 400 offset is the same as ours: $byteOffset");
             return $correctedByteOffset;
         }
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
         list($retUploadId, $retByteOffset) = self::_chunkedUploadParse200Response($response->body);
 
         $nextByteOffset = $byteOffset + strlen($data);
-        if ($uploadId !== $retUploadId) throw new Exception_BadResponse(
-                "upload_id mismatch: us=".Util::q($uploadId) .", server=".Util::q($uploadId));
-        if ($nextByteOffset !== $retByteOffset) throw new Exception_BadResponse(
-                "next-offset mismatch: us=$nextByteOffset, server=$retByteOffset");
+        if ($uploadId !== $retUploadId)
+            throw new Exception_BadResponse(
+            "upload_id mismatch: us=" . Util::q($uploadId) . ", server=" . Util::q($uploadId));
+        if ($nextByteOffset !== $retByteOffset)
+            throw new Exception_BadResponse(
+            "next-offset mismatch: us=$nextByteOffset, server=$retByteOffset");
 
         return true;
     }
@@ -645,10 +685,13 @@ class Client
      */
     private static function _chunkedUploadCheckForOffsetCorrection($response)
     {
-        if ($response->statusCode !== 400) return null;
+        if ($response->statusCode !== 400)
+            return null;
         $j = json_decode($response->body, true, 10);
-        if ($j === null) return null;
-        if (!array_key_exists("upload_id", $j) || !array_key_exists("offset", $j)) return null;
+        if ($j === null)
+            return null;
+        if (!array_key_exists("upload_id", $j) || !array_key_exists("offset", $j))
+            return null;
         $uploadId = $j["upload_id"];
         $byteOffset = $j["offset"];
         return array($uploadId, $byteOffset);
@@ -687,12 +730,12 @@ class Client
         $params = array_merge(array("upload_id" => $uploadId), $writeMode->getExtraParams());
 
         $response = $this->doPost(
-            $this->contentHost,
-            $this->appendFilePath("1/commit_chunked_upload", $path),
-            $params);
+                $this->contentHost, $this->appendFilePath("1/commit_chunked_upload", $path), $params);
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -703,10 +746,10 @@ class Client
      * @return HttpResponse
      */
     protected function _chunkedUpload($params, $data)
-        // Marked 'protected' so I can override it in testing.
+    // Marked 'protected' so I can override it in testing.
     {
         $url = $this->buildUrlForGetOrPut(
-            $this->contentHost, "1/chunked_upload", $params);
+                $this->contentHost, "1/chunked_upload", $params);
 
         $curl = $this->mkCurl($url);
 
@@ -781,15 +824,16 @@ class Client
     private function _getMetadata($path, $params)
     {
         $response = $this->doGet(
-            $this->apiHost,
-            $this->appendFilePath("1/metadata", $path),
-            $params);
+                $this->apiHost, $this->appendFilePath("1/metadata", $path), $params);
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         $metadata = RequestUtil::parseResponseJson($response->body);
-        if (array_key_exists("is_deleted", $metadata) && $metadata["is_deleted"]) return null;
+        if (array_key_exists("is_deleted", $metadata) && $metadata["is_deleted"])
+            return null;
         return $metadata;
     }
 
@@ -839,16 +883,18 @@ class Client
         $params = array("list" => "true", "file_limit" => "25000", "hash" => $previousFolderHash);
 
         $response = $this->doGet(
-            $this->apiHost,
-            $this->appendFilePath("1/metadata", $path),
-            $params);
+                $this->apiHost, $this->appendFilePath("1/metadata", $path), $params);
 
-        if ($response->statusCode === 304) return array(false, null);
-        if ($response->statusCode === 404) return array(true, null);
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 304)
+            return array(false, null);
+        if ($response->statusCode === 404)
+            return array(true, null);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         $metadata = RequestUtil::parseResponseJson($response->body);
-        if (array_key_exists("is_deleted", $metadata) && $metadata["is_deleted"]) {
+        if (array_key_exists("is_deleted", $metadata) && $metadata["is_deleted"])
+        {
             return array(true, null);
         }
         return array(true, $metadata);
@@ -886,7 +932,8 @@ class Client
             "cursor" => $cursor,
             "path_prefix" => $pathPrefix));
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -915,12 +962,12 @@ class Client
         Checker::argIntPositiveOrNull("limit", $limit);
 
         $response = $this->doGet(
-            $this->apiHost,
-            $this->appendFilePath("1/revisions", $path),
-            array("rev_limit" => $limit));
+                $this->apiHost, $this->appendFilePath("1/revisions", $path), array("rev_limit" => $limit));
 
-        if ($response->statusCode === 406) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 406)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -949,12 +996,12 @@ class Client
         Checker::argStringNonEmpty("rev", $rev);
 
         $response = $this->doPost(
-            $this->apiHost,
-            $this->appendFilePath("1/restore", $path),
-            array("rev" => $rev));
+                $this->apiHost, $this->appendFilePath("1/restore", $path), array("rev" => $rev));
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -991,15 +1038,14 @@ class Client
         Checker::argBool("includeDeleted", $includeDeleted);
 
         $response = $this->doPost(
-            $this->apiHost,
-            $this->appendFilePath("1/search", $basePath),
-            array(
-                "query" => $query,
-                "file_limit" => $limit,
-                "include_deleted" => $includeDeleted,
-            ));
+                $this->apiHost, $this->appendFilePath("1/search", $basePath), array(
+            "query" => $query,
+            "file_limit" => $limit,
+            "include_deleted" => $includeDeleted,
+        ));
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -1024,14 +1070,14 @@ class Client
         Path::checkArg("path", $path);
 
         $response = $this->doPost(
-            $this->apiHost,
-            $this->appendFilePath("1/shares", $path),
-            array(
-                "short_url" => "false",
-            ));
+                $this->apiHost, $this->appendFilePath("1/shares", $path), array(
+            "short_url" => "false",
+        ));
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         $j = RequestUtil::parseResponseJson($response->body);
         return self::getField($j, "url");
@@ -1058,11 +1104,12 @@ class Client
         Path::checkArgNonRoot("path", $path);
 
         $response = $this->doPost(
-            $this->apiHost,
-            $this->appendFilePath("1/media", $path));
+                $this->apiHost, $this->appendFilePath("1/media", $path));
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         $j = RequestUtil::parseResponseJson($response->body);
         $url = self::getField($j, "url");
@@ -1094,11 +1141,12 @@ class Client
         Path::checkArg("path", $path);
 
         $response = $this->doGet(
-            $this->apiHost,
-            $this->appendFilePath("1/copy_ref", $path));
+                $this->apiHost, $this->appendFilePath("1/copy_ref", $path));
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         $j = RequestUtil::parseResponseJson($response->body);
         return self::getField($j, "copy_ref");
@@ -1139,17 +1187,17 @@ class Client
         Path::checkArgNonRoot("path", $path);
         Checker::argString("format", $format);
         Checker::argString("size", $size);
-        if (!in_array($format, array("jpeg", "png"))) {
-            throw new \InvalidArgumentException("Invalid 'format': ".Util::q($format));
+        if (!in_array($format, array("jpeg", "png")))
+        {
+            throw new \InvalidArgumentException("Invalid 'format': " . Util::q($format));
         }
-        if (!in_array($size, array("xs", "s", "m", "l", "xl"))) {
-            throw new \InvalidArgumentException("Invalid 'size': ".Util::q($format));
+        if (!in_array($size, array("xs", "s", "m", "l", "xl")))
+        {
+            throw new \InvalidArgumentException("Invalid 'size': " . Util::q($format));
         }
 
         $url = $this->buildUrlForGetOrPut(
-            $this->contentHost,
-            $this->appendFilePath("1/thumbnails", $path),
-            array("size" => $size, "format" => $format));
+                $this->contentHost, $this->appendFilePath("1/thumbnails", $path), array("size" => $size, "format" => $format));
 
         $curl = $this->mkCurl($url);
         $metadataCatcher = new DropboxMetadataHeaderCatcher($curl->handle);
@@ -1157,8 +1205,10 @@ class Client
         $curl->set(CURLOPT_RETURNTRANSFER, true);
         $response = $curl->exec();
 
-        if ($response->statusCode === 404) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 404)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         $metadata = $metadataCatcher->getMetadata();
         return array($metadata, $response->body);
@@ -1187,15 +1237,14 @@ class Client
         Path::checkArgNonRoot("toPath", $toPath);
 
         $response = $this->doPost(
-            $this->apiHost,
-            "1/fileops/copy",
-            array(
-                "root" => "auto",
-                "from_path" => $fromPath,
-                "to_path" => $toPath,
-            ));
+                $this->apiHost, "1/fileops/copy", array(
+            "root" => "auto",
+            "from_path" => $fromPath,
+            "to_path" => $toPath,
+        ));
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -1224,16 +1273,15 @@ class Client
         Path::checkArgNonRoot("toPath", $toPath);
 
         $response = $this->doPost(
-            $this->apiHost,
-            "1/fileops/copy",
-            array(
-                "root" => "auto",
-                "from_copy_ref" => $copyRef,
-                "to_path" => $toPath,
-            )
+                $this->apiHost, "1/fileops/copy", array(
+            "root" => "auto",
+            "from_copy_ref" => $copyRef,
+            "to_path" => $toPath,
+                )
         );
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -1258,15 +1306,15 @@ class Client
         Path::checkArgNonRoot("path", $path);
 
         $response = $this->doPost(
-            $this->apiHost,
-            "1/fileops/create_folder",
-            array(
-                "root" => "auto",
-                "path" => $path,
-            ));
+                $this->apiHost, "1/fileops/create_folder", array(
+            "root" => "auto",
+            "path" => $path,
+        ));
 
-        if ($response->statusCode === 403) return null;
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode === 403)
+            return null;
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -1290,14 +1338,32 @@ class Client
         Path::checkArgNonRoot("path", $path);
 
         $response = $this->doPost(
-            $this->apiHost,
-            "1/fileops/delete",
-            array(
-                "root" => "auto",
-                "path" => $path,
-            ));
+                $this->apiHost, "1/fileops/delete", array(
+            "root" => "auto",
+            "path" => $path,
+        ));
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
+
+        return RequestUtil::parseResponseJson($response->body);
+    }
+
+    /**
+     *
+     * Cf. https://www.dropbox.com/developers-v1/core/docs#save-url
+     * @param string $url
+     * @param string $destinationPath
+     */
+    public function saveUrl($url, $destinationPath)
+    {
+        $response = $this->doPost(
+                $this->apiHost, "1/save_url/auto/" . $destinationPath, array(
+            "url" => $url,
+        ));
+
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -1325,15 +1391,14 @@ class Client
         Path::checkArgNonRoot("toPath", $toPath);
 
         $response = $this->doPost(
-            $this->apiHost,
-            "1/fileops/move",
-            array(
-                "root" => "auto",
-                "from_path" => $fromPath,
-                "to_path" => $toPath,
-            ));
+                $this->apiHost, "1/fileops/move", array(
+            "root" => "auto",
+            "from_path" => $fromPath,
+            "to_path" => $toPath,
+        ));
 
-        if ($response->statusCode !== 200) throw RequestUtil::unexpectedStatus($response);
+        if ($response->statusCode !== 200)
+            throw RequestUtil::unexpectedStatus($response);
 
         return RequestUtil::parseResponseJson($response->body);
     }
@@ -1375,8 +1440,7 @@ class Client
     {
         Checker::argString("host", $host);
         Checker::argString("path", $path);
-        return RequestUtil::doGet($this->clientIdentifier, $this->accessToken, $this->userLocale,
-                                  $host, $path, $params);
+        return RequestUtil::doGet($this->clientIdentifier, $this->accessToken, $this->userLocale, $host, $path, $params);
     }
 
     /**
@@ -1397,8 +1461,7 @@ class Client
     {
         Checker::argString("host", $host);
         Checker::argString("path", $path);
-        return RequestUtil::doPost($this->clientIdentifier, $this->accessToken, $this->userLocale,
-                                   $host, $path, $params);
+        return RequestUtil::doPost($this->clientIdentifier, $this->accessToken, $this->userLocale, $host, $path, $params);
     }
 
     /**
@@ -1431,8 +1494,9 @@ class Client
     static function parseDateTime($apiDateTimeString)
     {
         $dt = \DateTime::createFromFormat(self::$dateTimeFormat, $apiDateTimeString);
-        if ($dt === false) throw new Exception_BadResponse(
-            "Bad date/time from server: ".Util::q($apiDateTimeString));
+        if ($dt === false)
+            throw new Exception_BadResponse(
+            "Bad date/time from server: " . Util::q($apiDateTimeString));
         return $dt;
     }
 
@@ -1443,8 +1507,9 @@ class Client
      */
     static function getField($j, $fieldName)
     {
-        if (!array_key_exists($fieldName, $j)) throw new Exception_BadResponse(
-            "missing field \"$fieldName\" in ".Util::q($j));
+        if (!array_key_exists($fieldName, $j))
+            throw new Exception_BadResponse(
+            "missing field \"$fieldName\" in " . Util::q($j));
         return $j[$fieldName];
     }
 
@@ -1458,9 +1523,12 @@ class Client
      */
     static function getAccessTokenError($s)
     {
-        if ($s === null) return "can't be null";
-        if (strlen($s) === 0) return "can't be empty";
-        if (preg_match('@[^-=_~/A-Za-z0-9\.\+]@', $s) === 1) return "contains invalid character";
+        if ($s === null)
+            return "can't be null";
+        if (strlen($s) === 0)
+            return "can't be empty";
+        if (preg_match('@[^-=_~/A-Za-z0-9\.\+]@', $s) === 1)
+            return "contains invalid character";
         return null;
     }
 
@@ -1470,7 +1538,8 @@ class Client
     static function checkAccessTokenArg($argName, $accessToken)
     {
         $error = self::getAccessTokenError($accessToken);
-        if ($error !== null) throw new \InvalidArgumentException("'$argName' invalid: $error");
+        if ($error !== null)
+            throw new \InvalidArgumentException("'$argName' invalid: $error");
     }
 
     /**
@@ -1478,9 +1547,12 @@ class Client
      */
     static function getClientIdentifierError($s)
     {
-        if ($s === null) return "can't be null";
-        if (strlen($s) === 0) return "can't be empty";
-        if (preg_match('@[\x00-\x1f\x7f]@', $s) === 1) return "contains control character";
+        if ($s === null)
+            return "can't be null";
+        if (strlen($s) === 0)
+            return "can't be empty";
+        if (preg_match('@[\x00-\x1f\x7f]@', $s) === 1)
+            return "contains control character";
         return null;
     }
 
@@ -1490,6 +1562,8 @@ class Client
     static function checkClientIdentifierArg($argName, $accessToken)
     {
         $error = self::getClientIdentifierError($accessToken);
-        if ($error !== null) throw new \InvalidArgumentException("'$argName' invalid: $error");
+        if ($error !== null)
+            throw new \InvalidArgumentException("'$argName' invalid: $error");
     }
+
 }
